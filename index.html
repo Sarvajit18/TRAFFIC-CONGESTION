@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrafficAI - Intelligent Traffic Congestion Prediction & Mobility Suite</title>
+  <meta name="description" content="AI-powered spatial-temporal traffic congestion prediction, Leaflet GIS city map simulation, dynamic A* congestion rerouting, adaptive signal optimization, and what-if policy sandbox." />
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><path d='m4.93 4.93 4.24 4.24'/><path d='m14.83 9.17 4.24-4.24'/><path d='m14.83 14.83 4.24 4.24'/><path d='m9.17 14.83-4.24 4.24'/></svg>" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              300: '#93c5fd',
+              400: '#60a5fa',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+              950: '#172554'
+            },
+            surface: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              800: '#1e293b',
+              850: '#141e33',
+              900: '#0f172a',
+              950: '#080d1a'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Leaflet GIS Map CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Chart.js CDN for Analytics & Forecasting Graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="src/styles/main.css">
+</head>
+<body class="bg-surface-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- HEADER NAVIGATION -->
+  <header class="sticky top-0 z-40 backdrop-blur-xl bg-surface-950/85 border-b border-slate-800/80 transition-colors">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="app.switchTab('live-map')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-brand-500/25 ring-1 ring-white/20">
+          <i data-lucide="activity" class="w-5 h-5 text-white animate-pulse"></i>
+        </div>
+        <div>
+          <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-brand-300 bg-clip-text text-transparent">TrafficAI</span>
+          <span class="hidden sm:inline-block ml-2 text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-medium">Mobility & Congestion Suite</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs (Desktop) -->
+      <nav class="hidden md:flex items-center space-x-1 bg-surface-900/90 p-1 rounded-xl border border-slate-800">
+        <button onclick="app.switchTab('live-map')" data-tab-btn="live-map" class="tab-btn active px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 text-brand-400 bg-brand-500/15">
+          <i data-lucide="map" class="w-4 h-4"></i>
+          <span>GIS Map & Simulation</span>
+        </button>
+        <button onclick="app.switchTab('prediction-engine')" data-tab-btn="prediction-engine" class="tab-btn px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+          <i data-lucide="cpu" class="w-4 h-4"></i>
+          <span>AI Predictor</span>
+        </button>
+        <button onclick="app.switchTab('route-optimizer')" data-tab-btn="route-optimizer" class="tab-btn px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+          <i data-lucide="navigation" class="w-4 h-4"></i>
+          <span>A* Rerouter</span>
+        </button>
+        <button onclick="app.switchTab('signal-controller')" data-tab-btn="signal-controller" class="tab-btn px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+          <i data-lucide="traffic-cone" class="w-4 h-4"></i>
+          <span>Adaptive Signals</span>
+        </button>
+        <button onclick="app.switchTab('scenario-sandbox')" data-tab-btn="scenario-sandbox" class="tab-btn px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+          <i data-lucide="sliders" class="w-4 h-4"></i>
+          <span>What-If Sandbox</span>
+        </button>
+        <button onclick="app.switchTab('analytics')" data-tab-btn="analytics" class="tab-btn px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+          <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+          <span>Analytics</span>
+        </button>
+      </nav>
+
+      <!-- Right Actions: System Status & Theme -->
+      <div class="flex items-center space-x-2">
+        <!-- Live System Congestion Index Badge -->
+        <div class="flex items-center space-x-2 px-3 py-1 rounded-xl bg-surface-900 border border-slate-800 text-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span class="text-slate-400 font-medium">City Congestion:</span>
+          <strong id="headerCongestionIndex" class="text-emerald-400 font-mono">38% (Normal)</strong>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button id="themeToggleBtn" onclick="app.toggleTheme()" class="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors" title="Toggle Dark/Light Mode">
+          <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+          <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Sub-bar -->
+    <div class="md:hidden flex overflow-x-auto px-4 py-2 space-x-2 border-t border-slate-800/60 bg-surface-900/60 no-scrollbar">
+      <button onclick="app.switchTab('live-map')" data-tab-btn="live-map" class="tab-btn active shrink-0 px-3 py-1 rounded-md text-xs font-medium text-brand-400 bg-brand-500/15">GIS Map</button>
+      <button onclick="app.switchTab('prediction-engine')" data-tab-btn="prediction-engine" class="tab-btn shrink-0 px-3 py-1 rounded-md text-xs font-medium text-slate-400">AI Predictor</button>
+      <button onclick="app.switchTab('route-optimizer')" data-tab-btn="route-optimizer" class="tab-btn shrink-0 px-3 py-1 rounded-md text-xs font-medium text-slate-400">Rerouter</button>
+      <button onclick="app.switchTab('signal-controller')" data-tab-btn="signal-controller" class="tab-btn shrink-0 px-3 py-1 rounded-md text-xs font-medium text-slate-400">Signals</button>
+      <button onclick="app.switchTab('scenario-sandbox')" data-tab-btn="scenario-sandbox" class="tab-btn shrink-0 px-3 py-1 rounded-md text-xs font-medium text-slate-400">Sandbox</button>
+      <button onclick="app.switchTab('analytics')" data-tab-btn="analytics" class="tab-btn shrink-0 px-3 py-1 rounded-md text-xs font-medium text-slate-400">Analytics</button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ========================================================================= -->
+    <!-- TAB 1: GIS CITY TRAFFIC MAP & LIVE SIMULATION -->
+    <!-- ========================================================================= -->
+    <section id="tab-live-map" class="tab-content block space-y-6">
+      
+      <!-- Top Metrics Banner -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="p-4 bg-surface-900/90 border border-slate-800/90 rounded-2xl space-y-1">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Avg Network Speed</span>
+            <i data-lucide="gauge" class="w-4 h-4 text-cyan-400"></i>
+          </div>
+          <div class="text-2xl font-black text-slate-100 font-mono" id="metricAvgSpeed">48.5 km/h</div>
+          <div class="text-[11px] text-emerald-400">↑ 4.2% vs baseline</div>
+        </div>
+
+        <div class="p-4 bg-surface-900/90 border border-slate-800/90 rounded-2xl space-y-1">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Active Vehicle Volume</span>
+            <i data-lucide="car" class="w-4 h-4 text-brand-400"></i>
+          </div>
+          <div class="text-2xl font-black text-slate-100 font-mono" id="metricVehicleCount">14,820 veh/h</div>
+          <div class="text-[11px] text-slate-400">Across 18 City Corridors</div>
+        </div>
+
+        <div class="p-4 bg-surface-900/90 border border-slate-800/90 rounded-2xl space-y-1">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Bottleneck Hotspots</span>
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+          </div>
+          <div class="text-2xl font-black text-slate-100 font-mono" id="metricHotspots">2 Critical</div>
+          <div class="text-[11px] text-amber-400">Ring Rd & Downtown Central</div>
+        </div>
+
+        <div class="p-4 bg-surface-900/90 border border-slate-800/90 rounded-2xl space-y-1">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Signal Efficiency Gain</span>
+            <i data-lucide="zap" class="w-4 h-4 text-emerald-400"></i>
+          </div>
+          <div class="text-2xl font-black text-slate-100 font-mono" id="metricSignalGain">+24.6%</div>
+          <div class="text-[11px] text-emerald-400">Adaptive AI Control Active</div>
+        </div>
+      </div>
+
+      <!-- Main GIS Map Container -->
+      <div class="bg-surface-900/90 border border-slate-800/90 rounded-3xl p-5 shadow-2xl relative overflow-hidden backdrop-blur-md space-y-4">
+        
+        <div class="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-slate-800">
+          <div class="flex items-center space-x-3">
+            <h3 class="font-bold text-base text-slate-100 flex items-center space-x-2">
+              <i data-lucide="map-pin" class="w-4 h-4 text-brand-400"></i>
+              <span>Metropolitan Road Network & Sensor GIS Overlay</span>
+            </h3>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Live Simulation</span>
+          </div>
+
+          <!-- Simulation Controls -->
+          <div class="flex items-center space-x-2">
+            <button id="simPlayPauseBtn" onclick="app.toggleSimulation()" class="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all flex items-center space-x-1.5 shadow-md">
+              <i data-lucide="pause" id="simPlayIcon" class="w-3.5 h-3.5"></i>
+              <span id="simPlayLabel">Pause</span>
+            </button>
+            <select id="simSpeedSelect" onchange="app.setSimulationSpeed(this.value)" class="bg-surface-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-200">
+              <option value="1">1x Speed</option>
+              <option value="2" selected>2x Speed</option>
+              <option value="5">5x Speed</option>
+            </select>
+            <button onclick="app.resetSimulation()" class="p-1.5 rounded-xl bg-surface-950 border border-slate-800 text-slate-400 hover:text-slate-200">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Leaflet Map Container -->
+        <div class="relative w-full h-[520px] rounded-2xl overflow-hidden border border-slate-800 shadow-inner">
+          <div id="leafletMap" class="w-full h-full z-10"></div>
+
+          <!-- Map Legend HUD Overlay -->
+          <div class="absolute bottom-4 left-4 z-20 bg-surface-950/90 backdrop-blur-md border border-slate-800 rounded-2xl p-3 shadow-xl text-xs space-y-1.5">
+            <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Congestion Levels</div>
+            <div class="flex items-center space-x-2">
+              <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+              <span class="text-slate-300">Free Flow (&gt;60 km/h)</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="w-3 h-3 rounded-full bg-amber-400"></span>
+              <span class="text-slate-300">Moderate (35-60 km/h)</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="w-3 h-3 rounded-full bg-orange-500"></span>
+              <span class="text-slate-300">Heavy (15-35 km/h)</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="w-3 h-3 rounded-full bg-red-500"></span>
+              <span class="text-slate-300">Severe Gridlock (&lt;15 km/h)</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 2: AI / ML FORECASTING ENGINE -->
+    <!-- ========================================================================= -->
+    <section id="tab-prediction-engine" class="tab-content hidden space-y-6">
+      
+      <div class="bg-surface-900/90 border border-slate-800/90 rounded-3xl p-6 shadow-2xl space-y-6">
+        
+        <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          <div>
+            <h2 class="text-xl font-bold text-slate-100 flex items-center space-x-2">
+              <i data-lucide="cpu" class="w-5 h-5 text-brand-400"></i>
+              <span>Spatial-Temporal AI Traffic Forecasting Engine</span>
+            </h2>
+            <p class="text-xs text-slate-400">Multi-factor regression & temporal sequence neural model predicting velocity, vehicle density, and gridlock risk.</p>
+          </div>
+        </div>
+
+        <form id="predictionForm" onsubmit="event.preventDefault(); app.runAIPrediction();" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          <!-- Select Road Corridor -->
+          <div>
+            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Target Road Segment</label>
+            <select id="predCorridorSelect" class="w-full bg-surface-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:ring-2 focus:ring-brand-500">
+              <option value="e1">Outer Ring Road Corridor (High Capacity)</option>
+              <option value="e2">Downtown Central Expressway</option>
+              <option value="e3">Tech Park Arterial Highway</option>
+              <option value="e4">Airport Link Flyover</option>
+              <option value="e5">Suburban West Bypass</option>
+            </select>
+          </div>
+
+          <!-- Time Horizon -->
+          <div>
+            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Forecasting Horizon</label>
+            <select id="predHorizonSelect" class="w-full bg-surface-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:ring-2 focus:ring-brand-500">
+              <option value="15">Next 15 Minutes (Short-term)</option>
+              <option value="30" selected>Next 30 Minutes</option>
+              <option value="60">Next 1 Hour</option>
+              <option value="180">Next 3 Hours</option>
+            </select>
+          </div>
+
+          <!-- Weather Conditions -->
+          <div>
+            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Weather Factor</label>
+            <select id="predWeatherSelect" class="w-full bg-surface-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:ring-2 focus:ring-brand-500">
+              <option value="clear">☀️ Clear & Dry</option>
+              <option value="rain">🌧️ Heavy Rain / Wet Surface</option>
+              <option value="fog">🌫️ Low Visibility / Fog</option>
+              <option value="storm">⛈️ Severe Thunderstorm</option>
+            </select>
+          </div>
+
+          <!-- Incident & Event Surge -->
+          <div>
+            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Incidents & Events</label>
+            <select id="predIncidentSelect" class="w-full bg-surface-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:ring-2 focus:ring-brand-500">
+              <option value="none">None (Standard Operations)</option>
+              <option value="accident_minor">🚗 Minor Accident (1 Lane Blocked)</option>
+              <option value="accident_major">🚨 Major Multi-Vehicle Crash</option>
+              <option value="construction">🚧 Construction Road Work</option>
+              <option value="event_surge">🏟️ Stadium / Concert Surge</option>
+            </select>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="sm:col-span-2 lg:col-span-4 pt-2">
+            <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-brand-500/25 transition-all flex items-center justify-center space-x-2">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>Generate Spatial-Temporal Traffic Prediction</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Prediction Result Cards -->
+        <div id="predictionResultsCard" class="space-y-4 pt-2">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            <div class="p-4 bg-surface-950 rounded-2xl border border-slate-800 space-y-2">
+              <span class="text-xs text-slate-400 block font-semibold">Predicted Speed</span>
+              <div class="text-3xl font-black text-amber-400 font-mono" id="predSpeedVal">28.4 km/h</div>
+              <p class="text-[11px] text-slate-500" id="predSpeedDesc">Speed reduced by 42% due to rain & lane restriction.</p>
+            </div>
+
+            <div class="p-4 bg-surface-950 rounded-2xl border border-slate-800 space-y-2">
+              <span class="text-xs text-slate-400 block font-semibold">Congestion Probability</span>
+              <div class="text-3xl font-black text-rose-400 font-mono" id="predCongestionRisk">78% (Heavy)</div>
+              <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div class="bg-rose-500 h-full w-[78%]" id="predRiskBar"></div>
+              </div>
+            </div>
+
+            <div class="p-4 bg-surface-950 rounded-2xl border border-slate-800 space-y-2">
+              <span class="text-xs text-slate-400 block font-semibold">Expected Vehicle Flow</span>
+              <div class="text-3xl font-black text-brand-300 font-mono" id="predVolumeVal">2,140 veh/h</div>
+              <p class="text-[11px] text-slate-500">Approaching 89% of roadway capacity.</p>
+            </div>
+
+          </div>
+
+          <!-- Model Performance & Feature Importance Breakdown -->
+          <div class="p-4 bg-surface-950 rounded-2xl border border-slate-800 space-y-2 text-xs">
+            <h4 class="font-bold text-slate-200">ML Model Diagnostics & Feature Contributions:</h4>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px] text-slate-400 pt-1">
+              <div>R² Score: <strong class="text-emerald-400">0.942</strong></div>
+              <div>RMSE: <strong class="text-emerald-400">2.18 km/h</strong></div>
+              <div>MAE: <strong class="text-emerald-400">1.64 km/h</strong></div>
+              <div>Confidence: <strong class="text-emerald-400">96.8%</strong></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 3: DYNAMIC A* REROUTER & CARBON ESTIMATOR -->
+    <!-- ========================================================================= -->
+    <section id="tab-route-optimizer" class="tab-content hidden space-y-6">
+      
+      <div class="bg-surface-900/90 border border-slate-800/90 rounded-3xl p-6 shadow-2xl space-y-6">
+        
+        <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          <div>
+            <h2 class="text-xl font-bold text-slate-100 flex items-center space-x-2">
+              <i data-lucide="navigation" class="w-5 h-5 text-cyan-400"></i>
+              <span>Dynamic A* Congestion-Aware Route Optimizer</span>
+            </h2>
+            <p class="text-xs text-slate-400">Find the optimal travel path comparing traditional shortest-distance vs. dynamic real-time minimum delay routes with carbon estimation.</p>
+          </div>
+        </div>
+
+        <!-- Route Origin & Destination Selector -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Origin Junction</label>
+            <select id="routeOriginSelect" class="w-full bg-surface-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200">
+              <option value="N1">Node 1: North Ring Entry</option>
+              <option value="N2">Node 2: Downtown West</option>
+              <option value="N3" selected>Node 3: Central Business District</option>
+              <option value="N4">Node 4: South Industrial Corridor</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Destination Junction</label>
+            <select id="routeDestSelect" class="w-full bg-surface-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200">
+              <option value="N5">Node 5: Airport Expressway Link</option>
+              <option value="N6" selected>Node 6: Tech Park Gateway</option>
+              <option value="N7">Node 7: East Ring Interchange</option>
+              <option value="N8">Node 8: Suburban Terminal</option>
+            </select>
+          </div>
+
+          <div class="flex items-end">
+            <button onclick="app.calculateOptimalRoute()" class="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center space-x-2">
+              <i data-lucide="zap" class="w-4 h-4"></i>
+              <span>Compute A* Route</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Route Comparison Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+          
+          <!-- Route A: Shortest Distance (Heavily Congested) -->
+          <div class="p-5 bg-surface-950 rounded-2xl border border-red-500/30 space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="px-2 py-0.5 rounded bg-red-500/20 text-red-400 font-bold text-xs">Standard Route (Shortest Distance)</span>
+              <span class="text-xs font-mono text-slate-400">12.4 km</span>
+            </div>
+            
+            <div class="space-y-1">
+              <div class="text-3xl font-black text-red-400 font-mono">38 Minutes</div>
+              <p class="text-xs text-slate-400">Traverses Central Ring gridlock (+18 min delay)</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-800">
+              <div>Fuel Used: <strong class="text-slate-200">1.82 L</strong></div>
+              <div>CO₂ Emissions: <strong class="text-slate-200">4.18 kg</strong></div>
+            </div>
+          </div>
+
+          <!-- Route B: AI Smart Reroute (Optimized Flow) -->
+          <div class="p-5 bg-surface-950 rounded-2xl border border-emerald-500/40 space-y-4 shadow-lg shadow-emerald-500/10">
+            <div class="flex items-center justify-between">
+              <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-xs">AI Smart Reroute (Fastest Travel Time)</span>
+              <span class="text-xs font-mono text-emerald-400">14.1 km</span>
+            </div>
+            
+            <div class="space-y-1">
+              <div class="text-3xl font-black text-emerald-400 font-mono">22 Minutes</div>
+              <p class="text-xs text-emerald-300 font-medium">✓ Saves 16 Minutes (42% faster via West Arterial)</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-800">
+              <div>Fuel Used: <strong class="text-emerald-300">1.24 L (-32%)</strong></div>
+              <div>CO₂ Emissions: <strong class="text-emerald-300">2.85 kg (-32%)</strong></div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 4: ADAPTIVE TRAFFIC SIGNAL CONTROLLER -->
+    <!-- ========================================================================= -->
+    <section id="tab-signal-controller" class="tab-content hidden space-y-6">
+      
+      <div class="bg-surface-900/90 border border-slate-800/90 rounded-3xl p-6 shadow-2xl space-y-6">
+        
+        <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          <div>
+            <h2 class="text-xl font-bold text-slate-100 flex items-center space-x-2">
+              <i data-lucide="traffic-cone" class="w-5 h-5 text-amber-400"></i>
+              <span>Adaptive Traffic Signal Optimization & Queue Controller</span>
+            </h2>
+            <p class="text-xs text-slate-400">Simulate 4-way intersection controllers with real-time green light allocation based on incoming queue volume.</p>
+          </div>
+
+          <div class="flex items-center bg-surface-950 p-1 rounded-xl border border-slate-800 text-xs">
+            <button onclick="app.setSignalMode('adaptive')" id="sigModeAdaptiveBtn" class="px-3 py-1.5 rounded-lg font-semibold bg-brand-500 text-white">AI Adaptive</button>
+            <button onclick="app.setSignalMode('fixed')" id="sigModeFixedBtn" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200">Fixed 45s Cycle</button>
+          </div>
+        </div>
+
+        <!-- 4-Way Intersection Simulator Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          <!-- North Approach -->
+          <div class="p-4 bg-surface-950 rounded-2xl border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-slate-300">Northbound Approach</span>
+              <span class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-2xl font-black text-emerald-400 font-mono" id="sigTimeNorth">GREEN (35s)</div>
+            </div>
+            <div class="text-xs text-slate-400 space-y-1">
+              <div>Incoming Queue: <strong class="text-slate-200" id="queueNorth">18 Vehicles</strong></div>
+              <div>Discharge Rate: <strong class="text-emerald-400">0.8 veh/sec</strong></div>
+            </div>
+          </div>
+
+          <!-- South Approach -->
+          <div class="p-4 bg-surface-950 rounded-2xl border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-slate-300">Southbound Approach</span>
+              <span class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-2xl font-black text-emerald-400 font-mono" id="sigTimeSouth">GREEN (35s)</div>
+            </div>
+            <div class="text-xs text-slate-400 space-y-1">
+              <div>Incoming Queue: <strong class="text-slate-200" id="queueSouth">14 Vehicles</strong></div>
+              <div>Discharge Rate: <strong class="text-emerald-400">0.8 veh/sec</strong></div>
+            </div>
+          </div>
+
+          <!-- East Approach -->
+          <div class="p-4 bg-surface-950 rounded-2xl border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-slate-300">Eastbound Approach</span>
+              <span class="w-3 h-3 rounded-full bg-red-500"></span>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-2xl font-black text-red-400 font-mono" id="sigTimeEast">RED (40s)</div>
+            </div>
+            <div class="text-xs text-slate-400 space-y-1">
+              <div>Incoming Queue: <strong class="text-amber-400" id="queueEast">32 Vehicles</strong></div>
+              <div>Next Phase: <strong class="text-brand-300">Allocating +15s Green</strong></div>
+            </div>
+          </div>
+
+          <!-- West Approach -->
+          <div class="p-4 bg-surface-950 rounded-2xl border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-slate-300">Westbound Approach</span>
+              <span class="w-3 h-3 rounded-full bg-red-500"></span>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-2xl font-black text-red-400 font-mono" id="sigTimeWest">RED (40s)</div>
+            </div>
+            <div class="text-xs text-slate-400 space-y-1">
+              <div>Incoming Queue: <strong class="text-amber-400" id="queueWest">28 Vehicles</strong></div>
+              <div>Next Phase: <strong class="text-brand-300">Allocating +15s Green</strong></div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 5: WHAT-IF POLICY SANDBOX -->
+    <!-- ========================================================================= -->
+    <section id="tab-scenario-sandbox" class="tab-content hidden space-y-6">
+      
+      <div class="bg-surface-900/90 border border-slate-800/90 rounded-3xl p-6 shadow-2xl space-y-6">
+        
+        <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          <div>
+            <h2 class="text-xl font-bold text-slate-100 flex items-center space-x-2">
+              <i data-lucide="sliders" class="w-5 h-5 text-pink-400"></i>
+              <span>What-If Scenario Policy Sandbox</span>
+            </h2>
+            <p class="text-xs text-slate-400">Simulate climate extremes, lane closures, and demand surges to test network resilience.</p>
+          </div>
+
+          <button onclick="app.resetSandboxSliders()" class="px-3 py-1.5 rounded-xl bg-surface-950 border border-slate-800 text-slate-400 hover:text-slate-200 text-xs font-semibold">
+            Reset to Default
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          <!-- Slider 1: Rain Intensity -->
+          <div class="p-5 bg-surface-950 rounded-2xl border border-slate-800 space-y-3">
+            <div class="flex justify-between text-xs font-bold">
+              <span class="text-slate-300">Rain / Storm Intensity</span>
+              <span id="sliderRainVal" class="text-cyan-400 font-mono">0 mm/h (Dry)</span>
+            </div>
+            <input type="range" id="sliderRain" min="0" max="100" value="0" step="5" class="w-full accent-cyan-500 cursor-pointer" oninput="app.updateSandboxScenario()" />
+            <p class="text-[11px] text-slate-500">Simulates friction reduction and speed drop.</p>
+          </div>
+
+          <!-- Slider 2: Rush Hour Surge -->
+          <div class="p-5 bg-surface-950 rounded-2xl border border-slate-800 space-y-3">
+            <div class="flex justify-between text-xs font-bold">
+              <span class="text-slate-300">Traffic Demand Multiplier</span>
+              <span id="sliderSurgeVal" class="text-brand-400 font-mono">1.0x (Normal)</span>
+            </div>
+            <input type="range" id="sliderSurge" min="0.5" max="2.5" value="1.0" step="0.1" class="w-full accent-brand-500 cursor-pointer" oninput="app.updateSandboxScenario()" />
+            <p class="text-[11px] text-slate-500">Scales overall city vehicle volume.</p>
+          </div>
+
+          <!-- Slider 3: Lane Closures / Road Work -->
+          <div class="p-5 bg-surface-950 rounded-2xl border border-slate-800 space-y-3">
+            <div class="flex justify-between text-xs font-bold">
+              <span class="text-slate-300">Active Incident Severity</span>
+              <span id="sliderAccidentVal" class="text-rose-400 font-mono">0 (None)</span>
+            </div>
+            <input type="range" id="sliderAccident" min="0" max="3" value="0" step="1" class="w-full accent-rose-500 cursor-pointer" oninput="app.updateSandboxScenario()" />
+            <p class="text-[11px] text-slate-500">0: None, 1: Minor, 2: Heavy, 3: Total Blockage</p>
+          </div>
+
+        </div>
+
+        <!-- Simulated Impact Summary -->
+        <div class="p-4 bg-surface-950 rounded-2xl border border-slate-800 space-y-2">
+          <h4 class="font-bold text-xs text-slate-300 uppercase tracking-wider">Simulated Network Impact Projection:</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-mono pt-1">
+            <div>Network Delay Increase: <strong id="simDelayImpact" class="text-amber-400">+0%</strong></div>
+            <div>Expected Gridlock Segments: <strong id="simGridlockCount" class="text-rose-400">0 corridors</strong></div>
+            <div>Estimated Excess Carbon: <strong id="simExcessCarbon" class="text-slate-300">+0.0 tons CO₂/h</strong></div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 6: HISTORICAL ANALYTICS & BOTTLENECK HOTSPOTS -->
+    <!-- ========================================================================= -->
+    <section id="tab-analytics" class="tab-content hidden space-y-6">
+      
+      <div class="bg-surface-900/90 border border-slate-800/90 rounded-3xl p-6 shadow-2xl space-y-6">
+        
+        <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          <div>
+            <h2 class="text-xl font-bold text-slate-100 flex items-center space-x-2">
+              <i data-lucide="bar-chart-3" class="w-5 h-5 text-emerald-400"></i>
+              <span>Traffic Analytics & Diurnal Diurnal Velocity Curves</span>
+            </h2>
+            <p class="text-xs text-slate-400">24-hour historical speed trends, peak volume spikes, and bottleneck rankings.</p>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <button onclick="app.exportTrafficCSV()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-surface-950 border border-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-800 transition-colors">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              <span>Export CSV</span>
+            </button>
+            <button onclick="app.exportNetworkGeoJSON()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-surface-950 border border-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-800 transition-colors">
+              <i data-lucide="file-json" class="w-3.5 h-3.5"></i>
+              <span>Export GeoJSON</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 24-Hour Speed vs Volume Chart -->
+        <div class="bg-surface-950 rounded-2xl border border-slate-800 p-4">
+          <canvas id="diurnalChart" height="240"></canvas>
+        </div>
+
+        <!-- Hotspot Ranking Table -->
+        <div class="space-y-3">
+          <h4 class="font-bold text-sm text-slate-200">Top Congestion Bottleneck Corridors</h4>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left text-slate-300">
+              <thead class="bg-surface-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+                <tr>
+                  <th class="py-2.5 px-3">Corridor</th>
+                  <th class="py-2.5 px-3">Road Type</th>
+                  <th class="py-2.5 px-3">Peak Speed</th>
+                  <th class="py-2.5 px-3">Occupancy</th>
+                  <th class="py-2.5 px-3">Risk Level</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60 font-mono">
+                <tr>
+                  <td class="py-2.5 px-3 font-sans font-semibold text-slate-100">Downtown Central Ring</td>
+                  <td class="py-2.5 px-3 text-slate-400">Urban Arterial</td>
+                  <td class="py-2.5 px-3 text-rose-400">14.2 km/h</td>
+                  <td class="py-2.5 px-3">88%</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-red-500/20 text-red-400 font-sans font-bold">Severe</span></td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-sans font-semibold text-slate-100">Outer Ring Rd Junction 4</td>
+                  <td class="py-2.5 px-3 text-slate-400">Expressway Link</td>
+                  <td class="py-2.5 px-3 text-amber-400">26.8 km/h</td>
+                  <td class="py-2.5 px-3">68%</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-sans font-bold">Heavy</span></td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-sans font-semibold text-slate-100">Tech Park Arterial Bypass</td>
+                  <td class="py-2.5 px-3 text-slate-400">Highway Link</td>
+                  <td class="py-2.5 px-3 text-emerald-400">58.4 km/h</td>
+                  <td class="py-2.5 px-3">34%</td>
+                  <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-sans font-bold">Free Flow</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div id="toastContainer" class="fixed bottom-6 right-6 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/80 bg-surface-950/80 py-6 text-center text-xs text-slate-500 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center space-x-2">
+        <span class="font-semibold text-slate-400">TrafficAI</span>
+        <span>— Intelligent Traffic Congestion Prediction & Optimization</span>
+      </div>
+      <div>
+        <span>Engineered with ❤️ for Smart Cities & Intelligent Mobility</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="src/utils/networkData.js"></script>
+  <script src="src/utils/storage.js"></script>
+  <script src="src/utils/exportUtils.js"></script>
+  <script src="src/modules/mlPredictor.js"></script>
+  <script src="src/modules/routePlanner.js"></script>
+  <script src="src/modules/signalOptimizer.js"></script>
+  <script src="src/modules/scenarioSandbox.js"></script>
+  <script src="src/modules/analyticsCharts.js"></script>
+  <script src="src/modules/trafficMap.js"></script>
+  <script src="src/index.js"></script>
+</body>
+</html>

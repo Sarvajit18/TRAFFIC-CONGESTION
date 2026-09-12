@@ -1,0 +1,29 @@
+{
+  "name": "traffic-congestion-prediction",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TrafficAI - Intelligent Traffic Congestion Prediction, GIS Map Simulation, Dynamic A* Rerouting & Adaptive Signal Optimization",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "server": "node server/server.js"
+  },
+  "keywords": [
+    "traffic-prediction",
+    "congestion-forecasting",
+    "machine-learning",
+    "smart-cities",
+    "intelligent-transportation",
+    "leaflet-gis",
+    "traffic-simulation"
+  ],
+  "author": "Sarvajit18",
+  "license": "MIT",
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "vite": "^5.3.1"
+  }
+}
